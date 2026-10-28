@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Monster Builder — Nursery Game</title>
+<style>
+:root{--ink:#28304a;--lav:#f1eaff;--pink:#ffe8f0;--mint:#e3fbf2;--sky:#e5f4ff;--yellow:#fff5c9;--purple:#a56be8}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(135deg,#fff8fb,#f3f0ff 52%,#edfbff);font-family:ui-rounded,"Trebuchet MS",Arial,sans-serif;color:var(--ink)}
+button{font:inherit;cursor:pointer;touch-action:manipulation;border:3px solid transparent;border-radius:18px;font-weight:800;transition:transform .12s,box-shadow .12s}
+button:focus-visible{outline:4px solid #263b80;outline-offset:3px}
+button:active{transform:scale(.97)}
+.app{max-width:1250px;margin:auto;padding:clamp(12px,2vw,24px)}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:clamp(1.6rem,3vw,2.5rem);margin:0;color:#6341a5}
+.subtitle{margin:5px 0 0;font-size:clamp(.9rem,1.5vw,1.1rem)}
+.pill{background:white;border:2px solid #e6dcfb;border-radius:999px;padding:10px 16px;font-weight:800}
+.layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:16px}
+.panel{background:#ffffffdc;border:2px solid #fff;border-radius:26px;box-shadow:0 12px 30px #67549b12;padding:clamp(12px,2vw,20px)}
+.stage{min-height:490px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;background:radial-gradient(circle at 50% 42%,#fff 0,#fff 42%,#f4edff 100%);overflow:hidden}
+.stage-top{display:flex;width:100%;align-items:center;justify-content:space-between;gap:8px}
+.stage-top strong{font-size:1.15rem}
+.preview{width:min(100%,520px);height:360px;display:flex;align-items:center;justify-content:center}
+svg#monster{width:100%;height:100%;overflow:visible}
+.monster-name{font-size:1.15rem;font-weight:900;background:white;border-radius:999px;padding:9px 18px;border:2px dashed #d8c5f5}
+.controls h2{font-size:1.2rem;margin:0 0 10px}
+.section{padding:13px 0;border-bottom:2px dashed #eee6fb}
+.section:last-child{border-bottom:0}
+.label{font-weight:900;margin-bottom:9px;display:flex;align-items:center;gap:8px}
+.choices{display:flex;flex-wrap:wrap;gap:9px}
+.choice{min-width:60px;min-height:60px;padding:9px 12px;background:#f6f2ff;color:var(--ink);border-color:#e6dcfb;display:flex;align-items:center;justify-content:center;gap:6px;font-size:1rem}
+.choice.selected{border-color:#6241a5;box-shadow:0 0 0 3px #e4d6ff;background:#fff}
+.swatch{width:26px;height:26px;border-radius:50%;border:2px solid #ffffff;box-shadow:0 0 0 1px #b6afc9}
+.shape-icon{width:30px;height:30px;display:block}
+.face-icon{font-size:1.8rem;line-height:1}
+.footer-controls{display:flex;gap:10px;flex-wrap:wrap;width:100%;margin-top:12px}
+.primary{background:#7048b8;color:white;padding:14px 20px;min-height:56px;flex:1}
+.secondary{background:white;border-color:#dfd3f5;color:#57378f;padding:12px 16px;min-height:54px}
+.status{min-height:32px;margin-top:9px;text-align:center;font-weight:800;color:#6341a5}
+.instructions{font-size:.95rem;line-height:1.4;color:#4d5268}
+.small{font-size:.83rem;color:#666b80}
+.confetti{animation:bounce .65s ease-in-out 2}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@media(max-width:800px){.layout{grid-template-columns:1fr}.stage{min-height:420px}.preview{height:300px}.controls{order:2}.stage{order:1}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+ <div><h1>👾 Monster Builder!</h1><p class="subtitle">Choose, build, and show your monster to the class.</p></div>
+ <div class="pill" aria-label="Teacher controlled activity">👩‍🏫 Teacher controls</div>
+</header>
+<div class="layout">
+ <section class="panel stage" aria-label="Monster preview">
+  <div class="stage-top"><strong>✨ Your monster</strong><span class="pill" id="stepBadge">Ready to build!</span></div>
+  <div class="preview">
+   <svg id="monster" viewBox="0 0 420 340" role="img" aria-label="A friendly purple circle monster with two eyes and stars">
+    <defs>
+     <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="7" stdDeviation="5" flood-color="#55416e" flood-opacity=".18"/></filter>
+    </defs>
+    <g id="legs"></g><g id="arms"></g><g id="bodyGroup" filter="url(#shadow)"></g><g id="decor"></g><g id="face"></g>
+   </svg>
+  </div>
+  <div class="monster-name" id="monsterName">Meet Poppy!</div>
+  <div class="status" id="status" aria-live="polite">Pick a shape, then choose a color!</div>
+ </section>
+ <section class="panel controls">
+  <div class="section">
+   <div class="label">1️⃣ Body shape</div>
+   <div class="choices" id="shapeChoices">
+    <button class="choice selected" data-shape="circle" aria-pressed="true"><svg class="shape-icon" viewBox="0 0 40 40"><circle cx="20" cy="20" r="15" fill="#a56be8"/></svg>●</button>
+    <button class="choice" data-shape="square" aria-pressed="false"><svg class="shape-icon" viewBox="0 0 40 40"><rect x="5" y="5" width="30" height="30" rx="4" fill="#59b7ed"/></svg>■</button>
+    <button class="choice" data-shape="triangle" aria-pressed="false"><svg class="shape-icon" viewBox="0 0 40 40"><path d="M20 4 L37 35 H3 Z" fill="#ffd34e"/></svg>▲</button>
+   </div>
+  </div>
+  <div class="section">
+   <div class="label">2️⃣ Body color</div>
+   <div class="choices" id="colorChoices">
+    <button class="choice" data-color="#f36b78" aria-label="Red" aria-pressed="false"><span class="swatch" style="background:#f36b78"></span>🔴</button>
+    <button class="choice" data-color="#59b7ed" aria-label="Blue" aria-pressed="false"><span class="swatch" style="background:#59b7ed"></span>🔵</button>
+    <button class="choice" data-color="#ffd34e" aria-label="Yellow" aria-pressed="false"><span class="swatch" style="background:#ffd34e"></span>🟡</button>
+    <button class="choice" data-color="#54c995" aria-label="Green" aria-pressed="false"><span class="swatch" style="background:#54c995"></span>🟢</button>
+    <button class="choice selected" data-color="#a56be8" aria-label="Purple" aria-pressed="true"><span class="swatch" style="background:#a56be8"></span>🟣</button>
+    <button class="choice" data-color="#ff9e54" aria-label="Orange" aria-pressed="false"><span class="swatch" style="background:#ff9e54"></span>🟠</button>
+   </div>
+  </div>
+  <div class="section">
+   <div class="label">3️⃣ Eyes</div>
+   <div class="choices" id="eyeChoices">
+    <button class="choice selected" data-eyes="two" aria-pressed="true"><span class="face-icon">👀</span></button>
+    <button class="choice" data-eyes="one" aria-label="One eye" aria-pressed="false"><span class="face-icon">👁️</span></button>
+    <button class="choice" data-eyes="three" aria-label="Three eyes" aria-pressed="false"><span class="face-icon">👀👁️</span></button>
+   </div>
+  </div>
+  <div class="section">
+   <div class="label">4️⃣ Mouth</div>
+   <div class="choices" id="mouthChoices">
+    <button class="choice selected" data-mouth="smile" aria-label="Smile" aria-pressed="true"><span class="face-icon">😊</span></button>
+    <button class="choice" data-mouth="open" aria-label="Open happy mouth" aria-pressed="false"><span class="face-icon">😮</span></button>
+    <button class="choice" data-mouth="silly" aria-label="Silly mouth" aria-pressed="false"><span class="face-icon">😛</span></button>
+   </div>
+  </div>
+  <div class="section">
+   <div class="label">5️⃣ Arms & legs</div>
+   <div class="choices" id="limbChoices">
+    <button class="choice selected" data-limbs="normal" aria-pressed="true">🙌 👣</button>
+    <button class="choice" data-limbs="short" aria-pressed="false">🤏 👟</button>
+    <button class="choice" data-limbs="long" aria-pressed="false">👐 🦵</button>
+    <button class="choice" data-limbs="none" aria-pressed="false">✨</button>
+   </div>
+  </div>
+  <div class="section">
+   <div class="label">6️⃣ Decoration</div>
+   <div class="choices" id="decorChoices">
+    <button class="choice selected" data-decor="stars" aria-pressed="true">⭐ ✨</button>
+    <button class="choice" data-decor="spots" aria-pressed="false">🔵 🟡</button>
+    <button class="choice" data-decor="hearts" aria-pressed="false">💖 💗</button>
+    <button class="choice" data-decor="none" aria-pressed="false">🚫</button>
+   </div>
+  </div>
+  <div class="footer-controls">
+   <button class="secondary" id="randomBtn">🎲 Surprise me!</button>
+   <button class="primary" id="showBtn">🎉 Show our monster!</button>
+   <button class="secondary" id="resetBtn">↺ Start again</button>
+  </div>
+  <p class="instructions">Teacher tip: invite children to choose together. Point, name the color or shape aloud, and let the class repeat. No child needs to read.</p>
+  <p class="small">Works offline in a modern browser. Use full-screen mode for projection.</p>
+ </section>
+</div>
+</div>
+<script>
+const state={shape:'circle',color:'#a56be8',colorName:'purple',eyes:'two',mouth:'smile',limbs:'normal',decor:'stars'};
+const colorNames={'#f36b78':'red','#59b7ed':'blue','#ffd34e':'yellow','#54c995':'green','#a56be8':'purple','#ff9e54':'orange'};
+const $=id=>document.getElementById(id);
+function setChoice(group,attr,value){
+ document.querySelectorAll('#'+group+' .choice').forEach(b=>{const active=b.dataset[attr]===value;b.classList.toggle('selected',active);b.setAttribute('aria-pressed',String(active));});
+}
+function svgEl(tag,attrs={},parent){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(parent)parent.appendChild(e);return e;}
+function clear(el){while(el.firstChild)el.removeChild(el.firstChild);}
+function draw(){
+ ['legs','arms','bodyGroup','decor','face'].forEach(id=>clear($(id)));
+ const legs=$('legs'),arms=$('arms'),body=$('bodyGroup'),decor=$('decor'),face=$('face');
+ let cx=210,cy=154;
+ let bodyAttrs;
+ if(state.shape==='circle') bodyAttrs={cx,cy,r:88,fill:state.color,stroke:'#59406f','stroke-width':4};
+ if(state.shape==='square') bodyAttrs={x:126,y:70,width:168,height:168,rx:24,fill:state.color,stroke:'#59406f','stroke-width':4};
+ if(state.shape==='triangle') bodyAttrs={d:'M210 52 L307 222 H113 Z',fill:state.color,stroke:'#59406f','stroke-width':4,'stroke-linejoin':'round'};
+ const limbColor=state.color, limbWidth=state.limbs==='short'?12:state.limbs==='long'?17:14;
+ if(state.limbs!=='none'){
+  const armLen=state.limbs==='short'?29:state.limbs==='long'?65:47;
+  svgEl('path',{d:`M${state.shape==='triangle'?143:136} 160 Q${105-armLen/4} 165 ${105-armLen} ${190+(state.limbs==='long'?12:0)}`,fill:'none',stroke:'#59406f','stroke-width':limbWidth+5,'stroke-linecap':'round'},arms);
+  svgEl('path',{d:`M${state.shape==='triangle'?143:136} 160 Q${105-armLen/4} 165 ${105-armLen} ${190+(state.limbs==='long'?12:0)}`,fill:'none',stroke:limbColor,'stroke-width':limbWidth,'stroke-linecap':'round'},arms);
+  svgEl('path',{d:`M${state.shape==='triangle'?277:284} 160 Q${315+armLen/4} 165 ${315+armLen} ${190+(state.limbs==='long'?12:0)}`,fill:'none',stroke:'#59406f','stroke-width':limbWidth+5,'stroke-linecap':'round'},arms);
+  svgEl('path',{d:`M${state.shape==='triangle'?277:284} 160 Q${315+armLen/4} 165 ${315+armLen} ${190+(state.limbs==='long'?12:0)}`,fill:'none',stroke:limbColor,'stroke-width':limbWidth,'stroke-linecap':'round'},arms);
+  const legY=state.shape==='triangle'?222:237, legLen=state.limbs==='short'?18:state.limbs==='long'?48:32;
+  [177,243].forEach(x=>{
+   svgEl('path',{d:`M${x} ${legY-2} L${x+(x===177?-7:7)} ${legY+legLen}`,fill:'none',stroke:'#59406f','stroke-width':18,'stroke-linecap':'round'},legs);
+   svgEl('path',{d:`M${x} ${legY-2} L${x+(x===177?-7:7)} ${legY+legLen}`,fill:'none',stroke:limbColor,'stroke-width':12,'stroke-linecap':'round'},legs);
+   svgEl('ellipse',{cx:x+(x===177?-12:12),cy:legY+legLen+2,rx:18,ry:10,fill:limbColor,stroke:'#59406f','stroke-width':3},legs);
+  });
+ }
+ if(state.shape==='circle')svgEl('circle',bodyAttrs,body);
+ else if(state.shape==='square')svgEl('rect',bodyAttrs,body);
+ else svgEl('path',bodyAttrs,body);
+ if(state.decor==='stars'){
+  [[155,105,1],[263,115,.85],[164,193,.75],[255,194,.8]].forEach(([x,y,s])=>{
+   svgEl('path',{d:`M${x} ${y-11*s} L${x+3*s} ${y-3*s} L${x+11*s} ${y} L${x+3*s} ${y+3*s} L${x} ${y+11*s} L${x-3*s} ${y+3*s} L${x-11*s} ${y} L${x-3*s} ${y-3*s} Z`,fill:'#ffe77b',stroke:'#b98a2f','stroke-width':1.5},decor);
+  });
+ }else if(state.decor==='spots'){
+  [[154,112,8,'#fff1a8'],[265,113,10,'#fff'],[162,190,7,'#5fbae9'],[256,193,8,'#fff']].forEach(([cx,cy,r,fill])=>svgEl('circle',{cx,cy,r,fill,opacity:.9},decor));
+ }else if(state.decor==='hearts'){
+  [[157,113],[262,113],[163,190],[257,190]].forEach(([x,y])=>svgEl('path',{d:`M${x} ${y+8} C${x-22} ${y-5} ${x-8} ${y-16} ${x} ${y-7} C${x+9} ${y-17} ${x+22} ${y-4} ${x} ${y+8}Z`,fill:'#ffb2ce',stroke:'#c85b8d','stroke-width':1.5},decor));
+ }
+ // Eyes placed to remain visible on all body shapes
+ const eyeY=state.shape==='triangle'?130:127;
+ const eyeXs=state.eyes==='one'?[210]:state.eyes==='three'?[170,210,250]:[179,241];
+ eyeXs.forEach((x,i)=>{
+  svgEl('ellipse',{cx:x,cy:eyeY,rx:state.eyes==='three'?17:22,ry:25,fill:'#fff',stroke:'#59406f','stroke-width':3},face);
+  svgEl('circle',{cx:x+4,cy:eyeY+3,r:10,fill:'#43365e'},face);
+  svgEl('circle',{cx:x+7,cy:eyeY-2,r:3.5,fill:'#fff'},face);
+ });
+ if(state.mouth==='smile')svgEl('path',{d:'M178 168 Q210 202 242 168',fill:'none',stroke:'#59406f','stroke-width':6,'stroke-linecap':'round'},face);
+ if(state.mouth==='open'){svgEl('ellipse',{cx:210,cy:177,rx:17,ry:21,fill:'#633e68',stroke:'#59406f','stroke-width':3},face);svgEl('path',{d:'M198 186 Q210 195 222 186',fill:'#ff8ea9'},face);}
+ if(state.mouth==='silly'){svgEl('path',{d:'M180 170 Q210 191 240 170',fill:'none',stroke:'#59406f','stroke-width':5,'stroke-linecap':'round'},face);svgEl('path',{d:'M210 179 Q202 197 216 199 Q230 196 218 179 Z',fill:'#ff789a',stroke:'#59406f','stroke-width':2},face);}
+ const shapeLabel=state.shape;
+ $('monsterName').textContent='Meet '+(state.colorName[0].toUpperCase()+state.colorName.slice(1))+' Poppy!';
+ $('monster').setAttribute('aria-label',`Friendly ${state.colorName} ${shapeLabel} monster with ${state.eyes} eyes, ${state.decor} decoration`);
+}
+function updateStatus(message){$('status').textContent=message;}
+document.querySelectorAll('[data-shape]').forEach(b=>b.addEventListener('click',()=>{state.shape=b.dataset.shape;setChoice('shapeChoices','shape',state.shape);draw();updateStatus('Great choice! Let’s name the shape together.');}));
+document.querySelectorAll('[data-color]').forEach(b=>b.addEventListener('click',()=>{state.color=b.dataset.color;state.colorName=colorNames[state.color];setChoice('colorChoices','color',state.color);draw();updateStatus('What color is our monster? Say it together!');}));
+document.querySelectorAll('[data-eyes]').forEach(b=>b.addEventListener('click',()=>{state.eyes=b.dataset.eyes;setChoice('eyeChoices','eyes',state.eyes);draw();updateStatus('Look at those eyes!');}));
+document.querySelectorAll('[data-mouth]').forEach(b=>b.addEventListener('click',()=>{state.mouth=b.dataset.mouth;setChoice('mouthChoices','mouth',state.mouth);draw();updateStatus('Which mouth did we choose?');}));
+document.querySelectorAll('[data-limbs]').forEach(b=>b.addEventListener('click',()=>{state.limbs=b.dataset.limbs;setChoice('limbChoices','limbs',state.limbs);draw();updateStatus('Our monster can have different arms and legs!');}));
+document.querySelectorAll('[data-decor]').forEach(b=>b.addEventListener('click',()=>{state.decor=b.dataset.decor;setChoice('decorChoices','decor',state.decor);draw();updateStatus('Let’s count or name the decorations!');}));
+$('showBtn').addEventListener('click',()=>{draw();$('monster').classList.remove('confetti');void $('monster').getBoundingClientRect();$('monster').classList.add('confetti');$('stepBadge').textContent='Ta-da! 🎉';updateStatus(`Our ${state.colorName} ${state.shape} monster is ready! Can everyone say it?`);});
+$('randomBtn').addEventListener('click',()=>{
+ const pick=a=>a[Math.floor(Math.random()*a.length)];
+ state.shape=pick(['circle','square','triangle']);state.color=pick(Object.keys(colorNames));state.colorName=colorNames[state.color];state.eyes=pick(['two','one','three']);state.mouth=pick(['smile','open','silly']);state.limbs=pick(['normal','short','long','none']);state.decor=pick(['stars','spots','hearts','none']);
+ [['shapeChoices','shape',state.shape],['colorChoices','color',state.color],['eyeChoices','eyes',state.eyes],['mouthChoices','mouth',state.mouth],['limbChoices','limbs',state.limbs],['decorChoices','decor',state.decor]].forEach(([g,a,v])=>setChoice(g,a,v));
+ $('stepBadge').textContent='Surprise!';draw();updateStatus('Surprise! What colors and shapes can you spot?');
+});
+$('resetBtn').addEventListener('click',()=>{
+ Object.assign(state,{shape:'circle',color:'#a56be8',colorName:'purple',eyes:'two',mouth:'smile',limbs:'normal',decor:'stars'});
+ [['shapeChoices','shape',state.shape],['colorChoices','color',state.color],['eyeChoices','eyes',state.eyes],['mouthChoices','mouth',state.mouth],['limbChoices','limbs',state.limbs],['decorChoices','decor',state.decor]].forEach(([g,a,v])=>setChoice(g,a,v));
+ $('stepBadge').textContent='Ready to build!';draw();updateStatus('Pick a shape, then choose a color!');
+});
+draw();
+</script>
+</body>
+</html>

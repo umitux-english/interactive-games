@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guess the Animal Sound!</title>
+<style>
+  :root { --ink:#35415b; --pink:#ff8eaa; --yellow:#ffd66e; --blue:#9edcf2; --green:#a9dfb2; }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; min-height:100vh; font-family:"Trebuchet MS",Arial,sans-serif; color:var(--ink);
+    background:linear-gradient(135deg,#fff3d9,#e8f7ff 55%,#f8eaff);
+    display:flex; justify-content:center; align-items:center; padding:22px;
+  }
+  .game { width:min(850px,100%); background:#ffffffed; border:5px solid white; border-radius:30px;
+    box-shadow:0 16px 45px #52617a24; padding:clamp(20px,4vw,38px); text-align:center; position:relative; overflow:hidden; }
+  h1 { margin:0 0 8px; font-size:clamp(2rem,5vw,3rem); color:#5366a5; }
+  .subtitle { margin:0 0 20px; font-size:1.05rem; }
+  .topline { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; flex-wrap:wrap; }
+  .pill { background:#f0f2ff; padding:9px 15px; border-radius:30px; font-weight:800; }
+  .progress { height:12px; background:#edf0f7; border-radius:20px; overflow:hidden; margin:0 0 25px; }
+  .bar { height:100%; width:0%; background:linear-gradient(90deg,#ff9fba,#ffd36e); transition:width .3s; }
+  .sound-card { background:linear-gradient(135deg,#fff0f5,#fff8df); border-radius:24px; padding:22px 15px; margin-bottom:22px; }
+  .sound-card p { margin:0 0 12px; font-size:1.15rem; font-weight:800; }
+  .listen { border:0; border-radius:18px; background:#6678bd; color:white; padding:14px 23px; font-size:1.1rem; font-weight:800; cursor:pointer; box-shadow:0 5px 0 #465795; }
+  .listen:active, .option:active, .next:active { transform:translateY(3px); box-shadow:none; }
+  .listen span { font-size:1.35rem; vertical-align:middle; margin-right:7px; }
+  .choices { display:grid; grid-template-columns:repeat(3,1fr); gap:15px; }
+  .option { background:white; border:3px solid #e5e9f5; border-radius:22px; padding:15px 8px 13px; cursor:pointer; color:var(--ink); font:inherit; box-shadow:0 5px 0 #e5e9f5; transition:.15s; }
+  .option:hover:not(:disabled) { border-color:#a8b7ed; transform:translateY(-3px); }
+  .animal { display:block; font-size:clamp(3.2rem,9vw,5.3rem); line-height:1.35; }
+  .animal-name { font-weight:800; font-size:1.08rem; }
+  .option.correct { border-color:#6bc58b; background:#eaffef; box-shadow:0 5px 0 #a9dfb2; }
+  .option.wrong { border-color:#f28e9b; background:#fff0f1; box-shadow:0 5px 0 #f6c2c8; }
+  .option:disabled { cursor:default; }
+  .feedback { min-height:54px; margin:18px 0 4px; font-size:1.2rem; font-weight:900; }
+  .next { display:none; border:0; background:#ff9fba; color:#563b58; border-radius:16px; padding:13px 25px; font-size:1.05rem; font-weight:900; cursor:pointer; box-shadow:0 5px 0 #e77f9c; }
+  .next.show { display:inline-block; }
+  .small { font-size:.88rem; opacity:.75; margin-top:19px; }
+  .celebration { display:none; }
+  .celebration h2 { font-size:2.2rem; color:#5366a5; margin:12px 0; }
+  .bigstar { font-size:5rem; }
+  .restart { display:inline-block; margin-top:12px; border:0; border-radius:16px; padding:13px 25px; background:#8bcfa0; color:#244d37; font-size:1.05rem; font-weight:900; cursor:pointer; }
+  .confetti { position:fixed; top:-15px; width:10px; height:16px; z-index:20; animation:fall 2.6s linear forwards; pointer-events:none; }
+  @keyframes fall { to { transform:translateY(110vh) rotate(760deg); opacity:.9; } }
+  @media(max-width:560px) { .choices{gap:8px}.option{padding:10px 3px}.animal-name{font-size:.9rem}.game{padding:18px 13px}.sound-card{padding:18px 10px} }
+</style>
+</head>
+<body>
+<main class="game">
+  <section id="quiz">
+    <h1>🐾 Guess the Animal Sound!</h1>
+    <p class="subtitle">Listen carefully. Which animal makes that sound?</p>
+    <div class="topline">
+      <span class="pill" id="counter">Question 1 of 3</span>
+      <span class="pill" id="score">⭐ Score: 0</span>
+    </div>
+    <div class="progress"><div class="bar" id="bar"></div></div>
+    <div class="sound-card">
+      <p>🔊 Listen to the sound!</p>
+      <button class="listen" id="listen"><span>🔊</span> Play animal sound</button>
+    </div>
+    <div class="choices" id="choices"></div>
+    <div class="feedback" id="feedback" aria-live="polite">Choose the animal you hear!</div>
+    <button class="next" id="next">Next question ➜</button>
+    <p class="small">Tip: Ask your teacher to play the sound again if you want to listen one more time.</p>
+  </section>
+  <section class="celebration" id="end">
+    <div class="bigstar">🏆🎉</div>
+    <h2>You are an Animal Sound Star!</h2>
+    <p id="finalscore" style="font-size:1.3rem;font-weight:800"></p>
+    <p>You did a wonderful job. Keep learning!</p>
+    <button class="restart" id="restart">Play again ↻</button>
+  </section>
+</main>
+<script>
+const questions = [
+  {sound:"Bird song", answer:"Bird", choices:[{name:"Cat",emoji:"🐱"},{name:"Bird",emoji:"🐦"},{name:"Sheep",emoji:"🐑"}]},
+  {sound:"Moo! Moo!", answer:"Cow", choices:[{name:"Horse",emoji:"🐴"},{name:"Pig",emoji:"🐷"},{name:"Cow",emoji:"🐮"}]},
+  {sound:"Meow! Meow!", answer:"Cat", choices:[{name:"Cat",emoji:"🐱"},{name:"Duck",emoji:"🦆"},{name:"Dog",emoji:"🐶"}]}
+];
+let current=0, score=0, answered=false;
+const $ = id => document.getElementById(id);
+const animalSounds = {
+  Bird: new Audio("bird.mp3"),
+  Cow: new Audio("cow.mp3"),
+  Cat: new Audio("cat.mp3")
+};
+
+function playAnimalSound() {
+  const answer = questions[current].answer;
+  const sound = animalSounds[answer];
+  if (!sound) return;
+  sound.pause();
+  sound.currentTime = 0;
+  sound.play().catch(() => {
+    $("feedback").textContent = "Please check that the audio file is in the same folder as this game.";
+  });
+}
+
+function render() {
+  Object.values(animalSounds).forEach(sound => { sound.pause(); sound.currentTime = 0; });
+  answered=false;
+  const q=questions[current];
+  $("counter").textContent=`Question ${current+1} of ${questions.length}`;
+  $("score").textContent=`⭐ Score: ${score}`;
+  $("bar").style.width=`${current/questions.length*100}%`;
+  $("feedback").textContent="Choose the animal you hear!";
+  $("next").classList.remove("show");
+  $("choices").innerHTML="";
+  q.choices.forEach(choice=>{
+    const b=document.createElement("button");
+    b.className="option";
+    b.innerHTML=`<span class="animal" aria-hidden="true">${choice.emoji}</span><span class="animal-name">${choice.name}</span>`;
+    b.addEventListener("click",()=>choose(choice.name,b));
+    $("choices").appendChild(b);
+  });
+}
+function choose(name,button) {
+  if(answered) return;
+  answered=true;
+  const q=questions[current];
+  document.querySelectorAll(".option").forEach(b=>b.disabled=true);
+  if(name===q.answer) {
+    score++;
+    button.classList.add("correct");
+    $("feedback").textContent="🎉 Hooray! That's correct! Well done!";
+    confetti();
+  } else {
+    button.classList.add("wrong");
+    $("feedback").textContent=`Good try! The correct answer is ${q.answer}.`;
+    document.querySelectorAll(".option").forEach(b=>{
+      if(b.querySelector(".animal-name").textContent===q.answer) b.classList.add("correct");
+    });
+  }
+  $("score").textContent=`⭐ Score: ${score}`;
+  $("next").textContent=current===questions.length-1?"See my score 🏆":"Next question ➜";
+  $("next").classList.add("show");
+}
+function confetti() {
+  const pieces=["🎊","✨","🎉","⭐","🟡","🟣"];
+  for(let i=0;i<48;i++){
+    const p=document.createElement("div"); p.className="confetti";
+    p.textContent=pieces[Math.floor(Math.random()*pieces.length)];
+    p.style.left=Math.random()*100+"vw";
+    p.style.animationDelay=Math.random()*.65+"s";
+    p.style.fontSize=(12+Math.random()*15)+"px";
+    document.body.appendChild(p); setTimeout(()=>p.remove(),3400);
+  }
+}
+$("listen").addEventListener("click",playAnimalSound);
+$("next").addEventListener("click",()=>{
+  if(current<questions.length-1){current++;render();}
+  else{
+    $("quiz").style.display="none"; $("end").style.display="block";
+    $("finalscore").textContent=`You got ${score} out of 3 questions correct!`;
+    confetti();
+  }
+});
+$("restart").addEventListener("click",()=>{
+  current=0;score=0;$("quiz").style.display="block";$("end").style.display="none";render();
+});
+render();
+</script>
+</body>
+</html>

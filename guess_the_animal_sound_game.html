@@ -58,7 +58,7 @@
     <div class="progress"><div class="bar" id="bar"></div></div>
     <div class="sound-card">
       <p>🔊 Listen to the sound!</p>
-      <button class="listen" id="listen"><span>🔊</span> Play the sound</button>
+      <button class="listen" id="listen"><span>🔊</span> Play animal sound</button>
     </div>
     <div class="choices" id="choices"></div>
     <div class="feedback" id="feedback" aria-live="polite">Choose the animal you hear!</div>
@@ -75,23 +75,31 @@
 </main>
 <script>
 const questions = [
-  {sound:"Woof! Woof!", answer:"Dog", choices:[{name:"Cat",emoji:"🐱"},{name:"Dog",emoji:"🐶"},{name:"Sheep",emoji:"🐑"}]},
+  {sound:"Bird song", answer:"Bird", choices:[{name:"Cat",emoji:"🐱"},{name:"Bird",emoji:"🐦"},{name:"Sheep",emoji:"🐑"}]},
   {sound:"Moo! Moo!", answer:"Cow", choices:[{name:"Horse",emoji:"🐴"},{name:"Pig",emoji:"🐷"},{name:"Cow",emoji:"🐮"}]},
   {sound:"Meow! Meow!", answer:"Cat", choices:[{name:"Cat",emoji:"🐱"},{name:"Duck",emoji:"🦆"},{name:"Dog",emoji:"🐶"}]}
 ];
 let current=0, score=0, answered=false;
 const $ = id => document.getElementById(id);
-function speakSound() {
-  if (!("speechSynthesis" in window)) {
-    alert("Your browser does not support spoken sounds. The sound clue is: " + questions[current].sound);
-    return;
-  }
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(questions[current].sound);
-  utterance.rate = 0.78; utterance.pitch = 1.35; utterance.volume = 1;
-  window.speechSynthesis.speak(utterance);
+const animalSounds = {
+  Bird: new Audio("animal_sound_game/bird.mp3"),
+  Cow: new Audio("animal_sound_game/cow.mp3"),
+  Cat: new Audio("animal_sound_game/cat.mp3")
+};
+
+function playAnimalSound() {
+  const answer = questions[current].answer;
+  const sound = animalSounds[answer];
+  if (!sound) return;
+  sound.pause();
+  sound.currentTime = 0;
+  sound.play().catch(() => {
+    $("feedback").textContent = "Please check that the audio file is in the same folder as this game.";
+  });
 }
+
 function render() {
+  Object.values(animalSounds).forEach(sound => { sound.pause(); sound.currentTime = 0; });
   answered=false;
   const q=questions[current];
   $("counter").textContent=`Question ${current+1} of ${questions.length}`;
@@ -140,7 +148,7 @@ function confetti() {
     document.body.appendChild(p); setTimeout(()=>p.remove(),3400);
   }
 }
-$("listen").addEventListener("click",speakSound);
+$("listen").addEventListener("click",playAnimalSound);
 $("next").addEventListener("click",()=>{
   if(current<questions.length-1){current++;render();}
   else{
